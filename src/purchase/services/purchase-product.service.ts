@@ -2,8 +2,11 @@ import { DeleteResult, UpdateResult } from "typeorm";
 import { BaseService } from "../../config/base.service";
 import { PurchaseProductDTO } from "../dto/purchase-product.dto";
 import { PurchaseProductEntity } from "../entities/purchases-products.entity";
+import { ProductService } from "../../product/services/product.service";
 export class PurchaseProductService extends BaseService<PurchaseProductEntity> {
-  constructor() {
+  constructor(
+    private readonly productService: ProductService = new ProductService()
+  ) {
     super(PurchaseProductEntity);
   }
 
@@ -15,11 +18,19 @@ export class PurchaseProductService extends BaseService<PurchaseProductEntity> {
   ): Promise<PurchaseProductEntity | null> {
     return (await this.execRepository).findOneBy({ id });
   }
+
+
   async createPurchaseProduct(
     body: PurchaseProductDTO
   ): Promise<PurchaseProductEntity> {
-    return (await this.execRepository).save(body);
+    const newPP =  (await this.execRepository).create(body); 
+    const prod = await this.productService.findProductById(newPP.product.id);
+    newPP.totalPrice = newPP.quantityProduct * prod!.price;
+    return (await this.execRepository).save(newPP);
   }
+
+
+  
   async deletePurchaseProduct(id: string): Promise<DeleteResult> {
     return (await this.execRepository).delete({ id });
   }
